@@ -50,14 +50,9 @@ async function run() {
             res.send(result)
         }
     })
-
     
-    app.get('/latest-property', async (req, res) => {
-            const cursor = productsCollection.find().sort({ created_at: -1 }).limit(6);
-            const result = await cursor.toArray();
-            res.send(result);
-    })
 
+    // PROPERTIES API
 
     app.post('/products', async (req, res) => {
             console.log('header in the post', req.headers)
@@ -65,6 +60,35 @@ async function run() {
             const result = await productsCollection.insertOne(newProduct);
             res.send(result);
         })
+
+    app.get('/properties', async (req,res)=>{
+        console.log('properties',req.query)
+        const email = req.query.email;
+        const query = {}
+        if(email){
+            query.email = email
+        }
+        const cursor = productsCollection.find(query);
+        const result = await cursor.toArray();
+        res.send(result)
+    })
+    
+    app.get('/latest-properties', async (req, res) => {
+            const cursor = productsCollection.find().sort({ createdAt: -1 }).limit(6);
+            const result = await cursor.toArray();
+            res.send(result);
+    })
+
+
+     app.get('/properties/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: id }
+            const result = await productsCollection.findOne(query);
+            res.send(result);
+        })
+
+
+    
 
 
     await client.db("admin").command({ ping: 1 });
