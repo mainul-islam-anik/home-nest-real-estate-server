@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 // require('dotenv').config()
+const { ObjectId } = require('mongodb');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 3000;
@@ -32,8 +33,9 @@ async function run() {
     // Send a ping to confirm a successful connection
     
     const db = client.db('home_bd');
-    const productsCollection = db.collection('properties')
+    const propertiesCollection = db.collection('properties')
     const usersCollection = db.collection('users')
+    const reviewsCollection = db.collection('reviews')
 
 
     // USERS APIS
@@ -54,10 +56,10 @@ async function run() {
 
     // PROPERTIES API
 
-    app.post('/products', async (req, res) => {
+    app.post('/properties', async (req, res) => {
             console.log('header in the post', req.headers)
             const newProduct = req.body;
-            const result = await productsCollection.insertOne(newProduct);
+            const result = await propertiesCollection.insertOne(newProduct);
             res.send(result);
         })
 
@@ -68,24 +70,91 @@ async function run() {
         if(email){
             query.email = email
         }
-        const cursor = productsCollection.find(query);
+        const cursor = propertiesCollection.find(query);
         const result = await cursor.toArray();
         res.send(result)
     })
     
     app.get('/latest-properties', async (req, res) => {
-            const cursor = productsCollection.find().sort({ createdAt: -1 }).limit(6);
+            const cursor = propertiesCollection.find().sort({ createdAt: -1 }).limit(6);
             const result = await cursor.toArray();
             res.send(result);
     })
 
 
-     app.get('/properties/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: id }
-            const result = await productsCollection.findOne(query);
+    //  details api
+app.get('/properties/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await propertiesCollection.findOne(query);
+        
+        if (!result) {
+            return res.status(404).send({ message: "Data not found" });
+        }
+        res.send(result);
+    } catch (error) {
+        res.status(500).send({ message: "Server error" });
+    }
+});
+
+
+        // MY PROPERTY API
+     app.get('/myProperties', async (req, res) => {
+            const email = req.query.email;
+            const query = {};
+            if (email) {
+                query.sellerEmail = email;
+            }
+
+            const cursor = propertiesCollection.find(query);
+            const result = await cursor.toArray();
             res.send(result);
         })
+        
+
+
+
+// update api
+app.patch('/properties/:id', async (req, res) => {
+    const id = req.params.id;
+    const updatedProperty = req.body;
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = {
+        $set: {
+            propertyName: updatedProperty.propertyName,
+            description: updatedProperty.description,
+            category: updatedProperty.category,
+            price: updatedProperty.price,
+            location: updatedProperty.location,
+            image: updatedProperty.image,
+        },
+    };
+    const result = await propertiesCollection.updateOne(filter, updateDoc);
+    res.send(result);
+});
+
+
+        app.delete('/properties/:id', async (req, res) => {
+            const id = req.params.id;
+                const query = { _id: new ObjectId(id) };
+
+            const result = await propertiesCollection.deleteOne(query);
+            res.send(result);
+        })
+
+
+
+
+        // review api
+app.get('/my-reviews/:email', async (req, res) => {
+    const email = req.params.email;
+    const query = { reviewerEmail: email };
+    
+    // ডাটাবেস থেকে রিভিউগুলো খুঁজে বের করা এবং লেটেস্ট রিভিউ আগে দেখানো
+    const result = await reviewsCollection.find(query).sort({ reviewDate: -1 }).toArray();
+    res.send(result);
+});
 
 
     
