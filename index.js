@@ -1,6 +1,6 @@
 const express = require('express')
 const cors = require('cors')
-// require('dotenv').config()
+require('dotenv').config()
 const { ObjectId } = require('mongodb');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const app = express()
@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000;
 app.use(cors())
 app.use(express.json())
 
-const uri = `mongodb+srv://homeDbUser:4iQ0VcZDANJ9Ylnu@cluster0.4di52mx.mongodb.net/?appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.4di52mx.mongodb.net/?appName=Cluster0`;
 
 
 const client = new MongoClient(uri, {
@@ -63,17 +63,44 @@ async function run() {
             res.send(result);
         })
 
-    app.get('/properties', async (req,res)=>{
-        console.log('properties',req.query)
-        const email = req.query.email;
-        const query = {}
-        if(email){
-            query.email = email
+    // app.get('/properties', async (req,res)=>{
+    //     console.log('properties',req.query)
+    //     const email = req.query.email;
+    //     const query = {}
+    //     if(email){
+    //         query.email = email
+    //     }
+    //     const cursor = propertiesCollection.find(query);
+    //     const result = await cursor.toArray();
+    //     res.send(result)
+    // })
+
+
+    app.get('/properties', async (req, res) => {
+    const search = req.query.search || ""; // সার্চ ভ্যালু না থাকলে খালি স্ট্রিং
+    const sort = req.query.sort; // ফ্রন্টএন্ড থেকে 'asc' বা 'desc' আসবে
+
+    let query = {
+        propertyName: { $regex: search, $options: 'i' } // নাম দিয়ে সার্চ (case-insensitive)
+    };
+
+    try {
+        let cursor = propertiesCollection.find(query);
+
+        // সর্টিং লজিক: দাম অনুযায়ী
+        if (sort === 'asc') {
+            cursor = cursor.sort({ price: 1 }); // কম থেকে বেশি
+        } else if (sort === 'desc') {
+            cursor = cursor.sort({ price: -1 }); // বেশি থেকে কম
         }
-        const cursor = propertiesCollection.find(query);
+
         const result = await cursor.toArray();
-        res.send(result)
-    })
+        res.send(result);
+    } catch (error) {
+        res.status(500).send({ message: "Error fetching properties" });
+    }
+});
+   
     
     app.get('/latest-properties', async (req, res) => {
             const cursor = propertiesCollection.find().sort({ createdAt: -1 }).limit(6);
@@ -94,6 +121,7 @@ app.get('/properties/:id', async (req, res) => {
         }
         res.send(result);
     } catch (error) {
+        console.log(error)
         res.status(500).send({ message: "Server error" });
     }
 });
@@ -147,6 +175,36 @@ app.patch('/properties/:id', async (req, res) => {
 
 
         // review api
+        app.post('/reviews', async (req, res) => {
+            console.log('header in the post', req.headers)
+            const newProduct = req.body;
+            const result = await reviewsCollection.insertOne(newProduct);
+            res.send(result);
+        })
+
+
+        
+
+        app.get('/reviews', async (req, res) => {
+            const productId = req.params.productId;
+            const query = { product: productId }
+            const cursor = reviewsCollection.find(query)
+            const result = await cursor.toArray();
+            console.log(result)
+            res.send(result);
+        })
+
+        app.get('/reviews/:propertyId', async (req, res) => {
+            const productId = req.params.propertyId;
+            console.log(req.params)
+            const query = { propertyId: productId }
+            const cursor = reviewsCollection.find(query)
+            const result = await cursor.toArray();
+            console.log(result)
+            res.send(result);
+        })
+
+
 app.get('/my-reviews/:email', async (req, res) => {
     const email = req.params.email;
     const query = { reviewerEmail: email };
@@ -160,8 +218,8 @@ app.get('/my-reviews/:email', async (req, res) => {
     
 
 
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
