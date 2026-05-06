@@ -63,17 +63,7 @@ async function run() {
             res.send(result);
         })
 
-    // app.get('/properties', async (req,res)=>{
-    //     console.log('properties',req.query)
-    //     const email = req.query.email;
-    //     const query = {}
-    //     if(email){
-    //         query.email = email
-    //     }
-    //     const cursor = propertiesCollection.find(query);
-    //     const result = await cursor.toArray();
-    //     res.send(result)
-    // })
+  
 
 
     app.get('/properties', async (req, res) => {
