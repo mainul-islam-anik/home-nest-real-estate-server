@@ -64,14 +64,12 @@ async function run() {
         })
 
   
-
-
     app.get('/properties', async (req, res) => {
-    const search = req.query.search || ""; // সার্চ ভ্যালু না থাকলে খালি স্ট্রিং
-    const sort = req.query.sort; // ফ্রন্টএন্ড থেকে 'asc' বা 'desc' আসবে
+    const search = req.query.search || ""; 
+    const sort = req.query.sort; 
 
     let query = {
-        propertyName: { $regex: search, $options: 'i' } // নাম দিয়ে সার্চ (case-insensitive)
+        propertyName: { $regex: search, $options: 'i' } 
     };
 
     try {
