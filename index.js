@@ -6,9 +6,42 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 3000;
 
+
+
+const admin = require("firebase-admin");
+
+const serviceAccount = require("./home-nest-firebase-admin.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
 // middlewere
 app.use(cors())
 app.use(express.json())
+
+const verifyFireBaseToken = async(req, res, next) =>{
+    const authorization = req.headers.authorization;
+    if(!authorization){
+        return res.status(401).send({message: 'unauthorized access'})
+    }
+    const token = authorization.split(' ')[1];
+    if(!token){
+        return res.status(401).send({message: 'unauthorized access'})
+    }
+    try{
+        const decoded = await admin.auth().verifyIdToken(token)
+        console.log('inside token', decoded)
+        req.token_email = decoded.email
+        next()
+    }
+    catch(error){
+        return res.status(401).send({message: 'unauthorized access'})
+    }
+
+    // next()
+}
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.4di52mx.mongodb.net/?appName=Cluster0`;
 
@@ -116,10 +149,13 @@ app.get('/properties/:id', async (req, res) => {
 
 
         // MY PROPERTY API
-     app.get('/myProperties', async (req, res) => {
+     app.get('/myProperties',verifyFireBaseToken, async (req, res) => {
             const email = req.query.email;
             const query = {};
             if (email) {
+                if(email !== req.token_email){
+                    return res.status(403).send({message: 'forbiden access'})
+                }
                 query.sellerEmail = email;
             }
 
