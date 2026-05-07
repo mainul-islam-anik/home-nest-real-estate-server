@@ -10,7 +10,9 @@ const port = process.env.PORT || 3000;
 
 const admin = require("firebase-admin");
 
-const serviceAccount = require("./home-nest-firebase-admin.json");
+// index.js
+const decoded = Buffer.from(process.env.FIREBASE_SERVICE_KEY, "base64").toString("utf8");
+const serviceAccount = JSON.parse(decoded);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -38,8 +40,6 @@ const verifyFireBaseToken = async(req, res, next) =>{
     catch(error){
         return res.status(401).send({message: 'unauthorized access'})
     }
-
-    // next()
 }
 
 
@@ -61,7 +61,7 @@ app.get('/', (req, res) =>{
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     console.log('database Connected')
     // Send a ping to confirm a successful connection
     
@@ -108,11 +108,11 @@ async function run() {
     try {
         let cursor = propertiesCollection.find(query);
 
-        // সর্টিং লজিক: দাম অনুযায়ী
+        
         if (sort === 'asc') {
-            cursor = cursor.sort({ price: 1 }); // কম থেকে বেশি
+            cursor = cursor.sort({ price: 1 }); 
         } else if (sort === 'desc') {
-            cursor = cursor.sort({ price: -1 }); // বেশি থেকে কম
+            cursor = cursor.sort({ price: -1 });
         }
 
         const result = await cursor.toArray();
@@ -233,7 +233,6 @@ app.get('/my-reviews/:email', async (req, res) => {
     const email = req.params.email;
     const query = { reviewerEmail: email };
     
-    // ডাটাবেস থেকে রিভিউগুলো খুঁজে বের করা এবং লেটেস্ট রিভিউ আগে দেখানো
     const result = await reviewsCollection.find(query).sort({ reviewDate: -1 }).toArray();
     res.send(result);
 });
